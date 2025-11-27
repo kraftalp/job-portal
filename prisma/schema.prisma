@@ -1,0 +1,224 @@
+// Prisma Schema
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Kullanıcı Modeli
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          UserRole @default(CANDIDATE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // İlişkiler
+  profile       Profile?
+  applications  Application[]
+  favorites     Favorite[]
+  
+  // Şirket sahibiyse
+  company       Company?
+}
+
+enum UserRole {
+  CANDIDATE
+  COMPANY
+  ADMIN
+}
+
+// Kullanıcı Profili
+model Profile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  photoUrl        String?
+  birthDate       DateTime?
+  location        String?
+  about           String?
+  cv              String?
+  videoUrl        String?
+  
+  // İş Deneyimi
+  experiences     Experience[]
+  
+  // Eğitim
+  educations      Education[]
+  
+  // Sertifikalar
+  certificates    Certificate[]
+  
+  // Diller
+  languages       Language[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// İş Deneyimi
+model Experience {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  
+  createdAt   DateTime @default(now())
+}
+
+// Eğitim
+model Education {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  school      String
+  degree      String
+  field       String?
+  startDate   DateTime
+  endDate     DateTime?
+  
+  createdAt   DateTime @default(now())
+}
+
+// Sertifika
+model Certificate {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  name        String
+  issuer      String
+  issueDate   DateTime
+  fileUrl     String?
+  
+  createdAt   DateTime @default(now())
+}
+
+// Dil
+model Language {
+  id          String        @id @default(cuid())
+  profileId   String
+  profile     Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  language    String
+  level       LanguageLevel
+  
+  createdAt   DateTime @default(now())
+}
+
+enum LanguageLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  NATIVE
+}
+
+// Şirket
+model Company {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  logo        String?
+  description String?
+  website     String?
+  location    String?
+  sector      String?
+  
+  jobs        Job[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// İş İlanı
+model Job {
+  id            String       @id @default(cuid())
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String
+  requirements  String
+  location      String
+  jobType       JobType
+  workType      WorkType
+  salary        String?
+  isActive      Boolean      @default(true)
+  
+  applications  Application[]
+  favorites     Favorite[]
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum WorkType {
+  REMOTE
+  OFFICE
+  HYBRID
+}
+
+// Başvuru
+model Application {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId           String
+  job             Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  coverLetter     String?
+  status          ApplicationStatus @default(PENDING)
+  
+  // Görüşme Tarihi
+  interviewDate   DateTime?
+  interviewNotes  String?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([userId, jobId])
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  INTERVIEW
+  ACCEPTED
+  REJECTED
+}
+
+// Favoriler
+model Favorite {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([userId, jobId])
+}
